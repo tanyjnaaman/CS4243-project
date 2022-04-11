@@ -109,12 +109,12 @@ class GatedUpConv2dBlock(nn.Module):
     def __init__(self, input_dim, output_dim, 
         kernel_size = 3, stride = 1, padding = 'same', dilation = 1, 
         activation = nn.ReLU, 
-        scale_factor = (2,2)):
+        scale_factor = (2,2), mode = 'nearest'):
 
         super(GatedUpConv2dBlock, self).__init__()
 
 
-        self.upsample = nn.Upsample(scale_factor = scale_factor, mode = 'bicubic')
+        self.upsample = nn.Upsample(scale_factor = scale_factor, mode = mode)
         self.conv = GatedConv2d(input_dim, output_dim, kernel_size, stride, padding, dilation)
         self.activation = activation()
         self.bn = nn.BatchNorm2d(output_dim)
