@@ -313,7 +313,7 @@ class AnimalDataset(Dataset):
             # add random noise
             if random_noise:
                 image[h_centre - h//2:h_centre + h//2,
-                    w_centre - w//2:w_centre + w//2,:]  = torch.rand(h,w,c) 
+                    w_centre - w//2:w_centre + w//2,:]  = torch.rand((h//2 * 2),w,c) 
 
             return image, mask
 
