@@ -28,6 +28,7 @@ class AnimalDataset(Dataset):
                  local_dir_path: str = None, 
                  transform = None,
                  concat_mask = True,
+                 random_noise = True,
                  require_init = True,
                  drops = None, 
                  divide_range = (4,6), 
@@ -48,6 +49,7 @@ class AnimalDataset(Dataset):
         self.FILE_PREFIX = file_prefix
         self.INITIALIZED = False
         self.REQUIRE_INIT = require_init
+        self.RANDOM_NOISE = random_noise
 
         # constants
         AnimalDataset.CROP_BOX_SIZES_DIVIDE_RANGE = divide_range
@@ -133,21 +135,21 @@ class AnimalDataset(Dataset):
         if self.local_dir_path != None:
             try: 
                 # load from memory
-                sample = self._getsample_local(idx, self.CONCAT_MASK)
+                sample = self._getsample_local(idx, self.CONCAT_MASK, self.RANDOM_NOISE)
                 return sample
 
             except FileNotFoundError:
                 pass
 
         # no preloaded, preprocess and save
-        return self._getsample_loadsave(idx, self.CONCAT_MASK)
+        return self._getsample_loadsave(idx, self.CONCAT_MASK, self.RANDOM_NOISE)
 
     def initialize(self):
         self._clean()
         self.INITIALIZED = True
 
 
-    def _getsample_local(self, idx, concat_mask = False):
+    def _getsample_local(self, idx, concat_mask = False, random_noise = False):
         """
         Gets an image stored locally and then processes it into 
         a sample.
@@ -165,7 +167,7 @@ class AnimalDataset(Dataset):
             damaged_image = pickle.load(p)
 
         # dynamically damage
-        damaged_image, mask = self._damage(damaged_image)
+        damaged_image, mask = self._damage(damaged_image, random_noise)
 
         # optionally append mask to damaged image
         if concat_mask:
@@ -181,7 +183,7 @@ class AnimalDataset(Dataset):
         return sample
         
 
-    def _getsample_loadsave(self, idx, concat_mask = False):
+    def _getsample_loadsave(self, idx, concat_mask = False, random_noise = False):
         """
         Gets a sample from memory, preprocesses it for aspect ratio, then 
         processes it into a sample.
@@ -191,7 +193,7 @@ class AnimalDataset(Dataset):
                
         # load pair
         damaged_image, image = self._load_image_pair(self.df_filenames.iloc[idx])
-        damaged_image, mask = self._damage(damaged_image)
+        damaged_image, mask = self._damage(damaged_image, random_noise)
         
         # optionally append mask to damaged image
         if concat_mask:
@@ -280,7 +282,7 @@ class AnimalDataset(Dataset):
         
         return image
 
-    def _damage(self, image):
+    def _damage(self, image, random_noise = True):
         """
         This helper method damages the image for later reconstruction. 
         I have wrapped the methods into local helper methods. This way, reading and 
@@ -300,13 +302,18 @@ class AnimalDataset(Dataset):
             w_centre = np.random.randint(w_lower, w_higher + 1)
 
             # create mask
-            height, width, _ = image.shape
+            height, width, c = image.shape
             mask  = torch.ones(height, width, 1)
             mask[h_centre - h//2:h_centre + h//2,
                  w_centre - w//2:w_centre + w//2,:] = 0
 
             # crop
             image = torch.mul(mask, image)
+
+            # add random noise
+            if random_noise:
+                image[h_centre - h//2:h_centre + h//2,
+                    w_centre - w//2:w_centre + w//2,:]  = torch.rand(h,w,c) 
 
             return image, mask
 
