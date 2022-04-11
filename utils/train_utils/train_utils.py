@@ -94,7 +94,7 @@ def visualize_results(model, device, running_train_results: dict, running_eval_r
             
         plt.show()
         plt.close()
-    l
+    
 
 def summary(model: nn.Module, verbose = False):
     """

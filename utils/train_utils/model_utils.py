@@ -33,7 +33,6 @@ class Conv2dBlock(nn.Module):
 class UpConv2dBlock(nn.Module):
     """
     This class encapsulates upsampling by upsampling then convolution. 
-    Upsample -> 
     Here is a reference of this technique compared to transposed convolutions:
     Odena, et al., "Deconvolution and Checkerboard Artifacts", Distill, 2016. http://doi.org/10.23915/distill.00003
     """
@@ -102,5 +101,56 @@ class GatedConv2d(nn.Module):
 
         if return_mask:
             return x, mask
+
+        return x
+
+class GatedUpConv2dBlock(nn.Module):
+
+    def __init__(self, input_dim, output_dim, 
+        kernel_size = 3, stride = 1, padding = 'same', dilation = 1, 
+        activation = nn.ReLU, 
+        scale_factor = (2,2)):
+
+        super(GatedUpConv2dBlock, self).__init__()
+
+
+        self.upsample = nn.Upsample(scale_factor = scale_factor, mode = 'bicubic')
+        self.conv = GatedConv2d(input_dim, output_dim, kernel_size, stride, padding, dilation)
+        self.activation = activation()
+        self.bn = nn.BatchNorm2d(output_dim)
+
+    def forward(self, input_tensor):
+        
+        x = input_tensor
+        x = self.upsample(x)
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.activation(x)
+
+        return x
+
+class GatedConv2dBlock(nn.Module):
+    """
+    This class encapsulates a standard convolution block.
+    Conv -> BN -> activation
+    """
+
+    def __init__(self, input_dim, output_dim, 
+        kernel_size = 3, stride = 1, padding = 'same', dilation = 1, 
+        activation = nn.ReLU):
+
+        super(GatedConv2dBlock, self).__init__()
+
+        self.conv = GatedConv2d(input_dim, output_dim, kernel_size, stride, padding, dilation)
+        self.bn = nn.BatchNorm2d(output_dim)
+        self.activation = activation()
+
+
+    def forward(self, input_tensor):
+        
+        x = input_tensor
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.activation(x)
 
         return x
