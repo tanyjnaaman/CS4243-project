@@ -1,4 +1,8 @@
 dataset/frog_images/*
 dataset/preprocessed_64/*
+dataset/preprocessed_64_edge/*
 wandb/
 *.pt
+*.pickle
+*.zip
+*.gz

@@ -1,16 +1,17 @@
 # functional
-import torch
-from torch.utils.data import Dataset, DataLoader
+import cv2
 import pandas as pd
+import PIL.Image
 import numpy as np
 import os
-from numba import prange
 import time
+import torch
 
-# images
+from numba import prange
 from skimage import io
 from skimage import transform
-import PIL.Image
+from torch.utils.data import Dataset
+
 
 # pickle
 import pickle
@@ -166,6 +167,9 @@ class AnimalDataset(Dataset):
         with open(f"{filename}.pickle", "rb") as p:
             damaged_image = pickle.load(p)
 
+        with open(f"{filename}_edge.pickle", "rb") as p:
+            edge = pickle.load(p)
+
         # dynamically damage
         damaged_image, mask = self._damage(damaged_image, random_noise)
 
@@ -174,7 +178,7 @@ class AnimalDataset(Dataset):
             damaged_image = torch.cat([damaged_image, mask], dim = -1)
                 
         # return sample as tuples of (tensor, tensor)
-        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask}
+        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask, "edge" : edge}
 
         # transform if defined as in normal Dataset class
         if self.transform:
@@ -194,13 +198,16 @@ class AnimalDataset(Dataset):
         # load pair
         damaged_image, image = self._load_image_pair(self.df_filenames.iloc[idx])
         damaged_image, mask = self._damage(damaged_image, random_noise)
+
+        # get edge 
+        edge = self._edge(image)
         
         # optionally append mask to damaged image
         if concat_mask:
             damaged_image = torch.cat([damaged_image, mask], dim = -1)
                 
-        # return sample as tuples of (tensor, tensor)
-        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask}
+        # return sample as dictionaries
+        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask, "edge" : edge}
 
         # save image as pickle
         if self.local_dir_path != None:
@@ -208,6 +215,11 @@ class AnimalDataset(Dataset):
             with open(f"{filename}.pickle", "wb") as p:
                 pickle.dump(image, p, protocol = pickle.HIGHEST_PROTOCOL)
         
+        if self.local_dir_path != None:
+            filename = os.path.join(self.local_dir_path, str(int(self.df_indices.iloc[idx])).strip())
+            with open(f"{filename}_edge.pickle", "wb") as p:
+                pickle.dump(edge, p, protocol = pickle.HIGHEST_PROTOCOL)
+
         # transform if defined as in normal Dataset class
         if self.transform:
             sample = self.transform(sample)
@@ -244,7 +256,7 @@ class AnimalDataset(Dataset):
                 continue
 
             except AttributeError:
-                print("HERE")
+                print("AttributeError!")
                 print(image_name)
 
         raise Exception("Unable to load image! File names are: ", filenames)
@@ -324,3 +336,8 @@ class AnimalDataset(Dataset):
     def _reshape_channelFirst(self, image):
         h, w, c = image.size()
         return image.reshape(c, h, w)
+
+    def _edge(self, image):
+        
+        canny = torch.from_numpy(cv2.Canny((image.numpy()*255).astype(np.uint8), threshold1 = 0.1, threshold2 = 0.15)/255)
+        return canny
