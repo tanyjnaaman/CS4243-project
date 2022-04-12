@@ -1,7 +1,0 @@
-
-===== Epoch: 1 =====
-model has 0.071748 million parameters
-model has 0.071748 million parameters
-model has 0.009953 million parameters
-Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
-Loading model from: /home/e/e0425222/miniconda3/envs/env/lib/python3.7/site-packages/lpips/weights/v0.1/vgg.pth
