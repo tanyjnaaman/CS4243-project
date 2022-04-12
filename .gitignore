@@ -1,3 +1,4 @@
 dataset/frog_images/*
 dataset/preprocessed_64/*
 wandb/
+*.pt
