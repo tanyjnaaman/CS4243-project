@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # ===== VISUALIZATION =====
 
-def sample_batch(dataset, sample_size = 4, edge = False):
+def sample_batch(dataset, sample_size = 4, show_gray = False):
     """
     This method is intended to help visualize samples from a 
     dataset object. It takes in a dataset and plots out "sample_size"
@@ -23,15 +23,15 @@ def sample_batch(dataset, sample_size = 4, edge = False):
 
     batch = next(iter(loader))
     n = 3
-    if edge:
+    if show_gray:
         n = 4
 
-    fig, ax = plt.subplots(5, sample_size, figsize = (sample_size * 5, n * 5, ))
+    fig, ax = plt.subplots(n, sample_size, figsize = (sample_size * 5, n * 5, ))
     for i in range(sample_size):
         image = batch["image"][i]
         reconstructed = batch["reconstructed"][i]
         mask = batch["mask"][i]
-        edge = batch["edge"][i]
+        gray = batch["gray"][i]
         if image.shape[-1] > 3: # take first three channels, rgb
             image = image[:, :, 0:3]
 
@@ -39,8 +39,8 @@ def sample_batch(dataset, sample_size = 4, edge = False):
         ax[1][i].imshow(reconstructed)
         ax[2][i].matshow(mask.squeeze())
 
-        if edge:
-            ax[3][i].matshow(edge)
+        if show_gray:
+            ax[3][i].matshow(gray)
         
     plt.show()
     plt.close()

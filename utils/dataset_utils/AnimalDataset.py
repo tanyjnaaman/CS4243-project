@@ -167,8 +167,8 @@ class AnimalDataset(Dataset):
         with open(f"{filename}.pickle", "rb") as p:
             damaged_image = pickle.load(p)
 
-        with open(f"{filename}_edge.pickle", "rb") as p:
-            edge = pickle.load(p)
+        with open(f"{filename}.pickle", "rb") as p:
+            gray = pickle.load(p)
 
         # dynamically damage
         damaged_image, mask = self._damage(damaged_image, random_noise)
@@ -176,9 +176,12 @@ class AnimalDataset(Dataset):
         # optionally append mask to damaged image
         if concat_mask:
             damaged_image = torch.cat([damaged_image, mask], dim = -1)
+
+        # grayscale
+        gray = self._gray(gray)
                 
         # return sample as tuples of (tensor, tensor)
-        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask, "edge" : edge}
+        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask, "gray" : gray}
 
         # transform if defined as in normal Dataset class
         if self.transform:
@@ -198,27 +201,20 @@ class AnimalDataset(Dataset):
         # load pair
         damaged_image, image = self._load_image_pair(self.df_filenames.iloc[idx])
         damaged_image, mask = self._damage(damaged_image, random_noise)
-
-        # get edge 
-        edge = self._edge(image)
+        gray = self._gray(image)
         
         # optionally append mask to damaged image
         if concat_mask:
             damaged_image = torch.cat([damaged_image, mask], dim = -1)
                 
         # return sample as dictionaries
-        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask, "edge" : edge}
+        sample = {"image": damaged_image, "reconstructed" : image, "mask" : mask, "gray" : gray}
 
         # save image as pickle
         if self.local_dir_path != None:
             filename = os.path.join(self.local_dir_path, str(int(self.df_indices.iloc[idx])).strip())
             with open(f"{filename}.pickle", "wb") as p:
                 pickle.dump(image, p, protocol = pickle.HIGHEST_PROTOCOL)
-        
-        if self.local_dir_path != None:
-            filename = os.path.join(self.local_dir_path, str(int(self.df_indices.iloc[idx])).strip())
-            with open(f"{filename}_edge.pickle", "wb") as p:
-                pickle.dump(edge, p, protocol = pickle.HIGHEST_PROTOCOL)
 
         # transform if defined as in normal Dataset class
         if self.transform:
@@ -337,7 +333,25 @@ class AnimalDataset(Dataset):
         h, w, c = image.size()
         return image.reshape(c, h, w)
 
+    def _gray(self, image):
+        image = (image.numpy()*255).astype(np.uint8) # to numpy 255
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        return gray
+
     def _edge(self, image):
-        
-        canny = torch.from_numpy(cv2.Canny((image.numpy()*255).astype(np.uint8), threshold1 = 0.1, threshold2 = 0.15)/255)
-        return canny
+
+        def canny(image):
+            image = (image.numpy()*255).astype(np.uint8) # to numpy 255
+            high = np.percentile(image, 99)
+            low = np.percentile(image, 97.5)
+            canny = torch.from_numpy(cv2.Canny(image, threshold1 = low, threshold2 = high)/255)
+            return canny
+
+        def gray(image):
+            image = (image.numpy()*255).astype(np.uint8) # to numpy 255
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            return gray
+
+        edge = gray(image)
+
+        return edge
