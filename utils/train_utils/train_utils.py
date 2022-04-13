@@ -45,6 +45,17 @@ def sample_batch(dataset, sample_size = 4, show_gray = False):
     plt.show()
     plt.close()
 
+def visualize_adj(adj, b: int, h: int, w: int):
+
+    def edge_voting(adj):
+        b, hw, hw = adj.shape
+        assert hw == h * w
+        voted = adj.view(b, hw, h, w).sum(dim = 1)
+        return voted
+    
+    out = edge_voting(adj)
+    return out
+    
 
 def visualize_results(model, device, running_train_results: dict, running_eval_results: dict, test_dataset = None, images_only = False):
     """

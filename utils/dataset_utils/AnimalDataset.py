@@ -336,7 +336,7 @@ class AnimalDataset(Dataset):
     def _gray(self, image):
         image = (image.numpy()*255).astype(np.uint8) # to numpy 255
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        return gray
+        return torch.from_numpy(gray)/255
 
     def _edge(self, image):
 
