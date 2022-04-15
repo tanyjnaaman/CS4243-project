@@ -33,7 +33,8 @@ class AnimalDataset(Dataset):
                  require_init = True,
                  drops = None, 
                  divide_range = (4,6), 
-                 file_postfix = [".png", ".jpg", ".jpeg"]):
+                 file_postfix = [".png", ".jpg", ".jpeg"],
+                 seed = None):
         """
         Args:
             index_file_path: Path to the file with indices
@@ -51,6 +52,8 @@ class AnimalDataset(Dataset):
         self.INITIALIZED = False
         self.REQUIRE_INIT = require_init
         self.RANDOM_NOISE = random_noise
+        if seed is not None:
+            np.random.seed(seed)
 
         # constants
         AnimalDataset.CROP_BOX_SIZES_DIVIDE_RANGE = divide_range
